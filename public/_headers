@@ -1,0 +1,2 @@
+/*
+  Content-Security-Policy: worker-src blob: https://api.mapbox.com;
