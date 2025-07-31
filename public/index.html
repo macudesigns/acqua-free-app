@@ -94,4 +94,215 @@
 
     <!-- Banner de Consentimiento de Cookies -->
     <div id="cookieConsentBanner" class="hidden fixed bottom-0 left-0 right-0 bg-gray-800 text-white p-4 z-50 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <p class="text-sm te
+        <p class="text-sm text-center sm:text-left">Usamos cookies para mejorar tu experiencia y mostrarte anuncios relevantes. ¿Aceptas su uso?</p>
+        <div class="flex-shrink-0 flex gap-3">
+            <button id="declineCookiesBtn" class="text-sm text-gray-400 hover:text-white">Rechazar</button>
+            <button id="acceptCookiesBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm">Aceptar</button>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="addLocationModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm"><h2 class="text-xl font-bold mb-4 text-gray-800">Añadir Nuevo Punto</h2><form id="locationForm"><div><label for="locationType" class="block text-sm font-medium text-gray-700 mb-2">Tipo</label><select id="locationType" name="locationType" class="w-full px-3 py-2 border border-gray-300 rounded-lg" required><option value="restroom">Baño 🚽</option><option value="water">Agua 💧</option></select></div><div class="mt-4"><label for="locationDescription" class="block text-sm font-medium text-gray-700 mb-2">Descripción</label><textarea id="locationDescription" name="locationDescription" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ej: 'Bien cuidado'"></textarea></div><div class="mt-6 flex justify-end space-x-3"><button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 flex items-center gap-2"><span class="material-symbols-outlined">cancel</span><span>Cancelar</span></button><button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"><span class="material-symbols-outlined">save</span><span>Guardar</span></button></div></form></div>
+    </div>
+    <div id="confirmDeleteModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm text-center"><h2 class="text-xl font-bold mb-4">Confirmar Borrado</h2><p class="text-gray-600 mb-6">¿Seguro que quieres borrar este punto?</p><div class="flex justify-center space-x-4"><button type="button" id="cancelDeleteBtn" class="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Cancelar</button><button type="button" id="confirmDeleteBtn" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Borrar</button></div></div>
+    </div>
+    <div id="loader" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-4">
+        <div id="loaderContent">
+            <svg class="animate-spin h-10 w-10 text-blue-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <p class="mt-4 text-lg text-center">Cargando AquaGratis...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        const firebaseConfig = {
+          apiKey: "AIzaSyDjeKF5bRUUID5ECvqCM_ytOfz5QXD1ya4",
+          authDomain: "free-water-toilet.firebaseapp.com",
+          projectId: "free-water-toilet",
+          storageBucket: "free-water-toilet.firebasestorage.app",
+          messagingSenderId: "58215481215",
+          appId: "1:58215481215:web:ce2c8911ab9f81ac5a644a",
+          measurementId: "G-X2QXRECDLC"
+        };
+
+        // Simplificamos el nombre de la colección para evitar conflictos.
+        const DB_COLLECTION_NAME = 'locations'; 
+        let db, auth, userId, map, newLocationMarker, addingLocationMode = false, infoTimeout;
+        const markersLayer = L.layerGroup();
+
+        // DOM Elements
+        const loader = document.getElementById('loader');
+        const loaderContent = document.getElementById('loaderContent');
+        const addLocationModal = document.getElementById('addLocationModal');
+        const locationForm = document.getElementById('locationForm');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const addLocationBtn = document.getElementById('addLocationBtn');
+        const centerMapBtn = document.getElementById('centerMapBtn');
+        const infoPanel = document.getElementById('infoPanel');
+        const infoText = document.getElementById('infoText');
+        const closeInfoBtn = document.getElementById('closeInfoBtn');
+        const confirmDeleteModal = document.getElementById('confirmDeleteModal');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const adPanel = document.getElementById('adPanel');
+        const closeAdBtn = document.getElementById('closeAdBtn');
+        const cookieConsentBanner = document.getElementById('cookieConsentBanner');
+        const acceptCookiesBtn = document.getElementById('acceptCookiesBtn');
+        const declineCookiesBtn = document.getElementById('declineCookiesBtn');
+
+        // --- INITIALIZATION ---
+        async function main() {
+            handleCookieConsent();
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                await authenticateUser();
+                initializeMap();
+                setupEventListeners();
+                listenForLocations();
+            } catch (error) {
+                console.error("Error en la inicialización:", error);
+                 loaderContent.innerHTML = `
+                        <div class="text-center p-6 max-w-lg mx-auto bg-white border-4 border-red-500 rounded-lg shadow-2xl">
+                            <p class="text-red-600 font-bold text-2xl">¡Atención! Error de Configuración</p>
+                            <p class="mt-2 text-gray-800 text-lg">El inicio de sesión anónimo no está activado en tu proyecto de Firebase.</p>
+                            <p class="mt-6 text-md text-left bg-gray-100 p-4 rounded-lg">
+                                <strong>Solución Rápida (1 minuto):</strong><br>
+                                1. Ve a tu proyecto en la <strong>Consola de Firebase</strong>.<br>
+                                2. En el menú de la izquierda, ve a <strong>Authentication</strong>.<br>
+                                3. Haz clic en la pestaña <strong>Sign-in method</strong>.<br>
+                                4. Busca <strong>"Anónimo"</strong> en la lista y actívalo.
+                            </p>
+                            <button onclick="location.reload()" class="mt-8 bg-blue-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-blue-700">Ya lo activé, reintentar</button>
+                        </div>`;
+            }
+        }
+
+        // --- COOKIE CONSENT ---
+        function handleCookieConsent() {
+            const consent = localStorage.getItem('cookie_consent');
+            if (consent === 'accepted') {
+                adPanel.classList.remove('hidden');
+            } else if (consent === 'declined') {
+                adPanel.classList.add('hidden');
+            } else {
+                cookieConsentBanner.classList.remove('hidden');
+            }
+        }
+
+        // --- AUTHENTICATION ---
+        async function authenticateUser() {
+            try {
+                const userCredential = await signInAnonymously(auth);
+                userId = userCredential.user.uid;
+                console.log("Usuario autenticado anónimamente:", userId);
+            } catch(error) {
+                console.error("Error de autenticación:", error);
+                throw error; // Detiene la ejecución si la autenticación falla
+            }
+        }
+        
+        // --- MAP LOGIC ---
+        function initializeMap() {
+            map = L.map('map', { zoomControl: false }).setView([40.416, -3.703], 6);
+            L.control.zoom({ position: 'top-right' }).addTo(map);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
+            markersLayer.addTo(map);
+            map.locate({ setView: true, maxZoom: 16 });
+            map.on('locationfound', e => { L.marker(e.latlng).addTo(map).bindPopup(`Estás cerca de aquí`).openPopup(); L.circle(e.latlng, e.accuracy / 2).addTo(map); });
+            map.on('locationerror', () => showInfoMessage("No se pudo obtener tu ubicación.", true, 7000));
+        }
+
+        function listenForLocations() {
+            const q = query(collection(db, DB_COLLECTION_NAME));
+            onSnapshot(q, (snapshot) => {
+                markersLayer.clearLayers();
+                snapshot.forEach((doc) => addMarkerToMap(doc.data(), doc.id));
+                loader.style.display = 'none';
+            }, () => showInfoMessage("No se pudieron cargar los puntos.", true, 5000));
+        }
+
+        function addMarkerToMap(location, locationId) {
+            const icon = L.divIcon({ html: location.type === 'restroom' ? '🚽' : '💧', className: `custom-div-icon ${location.type}`, iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -20] });
+            const marker = L.marker([location.lat, location.lng], { icon }).addTo(markersLayer);
+            let popupContent = `<div class="font-sans"><h3 class="font-bold text-lg">${location.type === 'restroom' ? 'Baño 🚽' : 'Agua 💧'}</h3>${location.description ? `<p class="mt-1">${location.description}</p>` : ''}<p class="text-xs text-gray-400 mt-2">ID: ...${location.userId.slice(-6)}</p>`;
+            if (userId === location.userId) {
+                popupContent += `<button id="delete-${locationId}" class="delete-button"><span class="material-symbols-outlined" style="font-size:1rem">delete</span>Borrar</button>`;
+            }
+            popupContent += `</div>`;
+            marker.bindPopup(popupContent);
+            marker.on('popupopen', () => {
+                const delBtn = document.getElementById(`delete-${locationId}`);
+                if (delBtn) { delBtn.onclick = () => { confirmDeleteModal.dataset.locationId = locationId; confirmDeleteModal.classList.remove('hidden'); }; }
+            });
+        }
+
+        // --- UI EVENT LISTENERS ---
+        function setupEventListeners() {
+            addLocationBtn.onclick = () => { addingLocationMode = true; showInfoMessage("Pulsa en el mapa para marcar la ubicación."); document.body.style.cursor = 'crosshair'; };
+            centerMapBtn.onclick = () => map.locate({ setView: true, maxZoom: 16 });
+            cancelBtn.onclick = hideModal;
+            locationForm.onsubmit = async (e) => {
+                e.preventDefault();
+                if (!newLocationMarker) return;
+                const formData = new FormData(locationForm);
+                try {
+                    await addDoc(collection(db, DB_COLLECTION_NAME), { lat: newLocationMarker.getLatLng().lat, lng: newLocationMarker.getLatLng().lng, type: formData.get('locationType'), description: formData.get('locationDescription'), userId, createdAt: new Date() });
+                    hideModal();
+                    showInfoMessage("¡Punto añadido!", false, 5000);
+                } catch (err) { alert("No se pudo guardar el punto."); }
+            };
+            map.on('click', (e) => { if (!addingLocationMode) return; if (newLocationMarker) map.removeLayer(newLocationMarker); newLocationMarker = L.marker(e.latlng, { draggable: true }).addTo(map); addLocationModal.classList.remove('hidden'); });
+            cancelDeleteBtn.onclick = () => confirmDeleteModal.classList.add('hidden');
+            confirmDeleteBtn.onclick = async () => {
+                const locId = confirmDeleteModal.dataset.locationId;
+                if (!locId) return;
+                try {
+                    await deleteDoc(doc(db, DB_COLLECTION_NAME, locId));
+                    map.closePopup();
+                    showInfoMessage("Punto borrado.", false, 5000);
+                } catch (err) { alert("No se pudo borrar el punto."); } finally { confirmDeleteModal.classList.add('hidden'); }
+            };
+            closeAdBtn.onclick = () => adPanel.style.display = 'none';
+            closeInfoBtn.onclick = () => { infoPanel.classList.add('opacity-0', 'pointer-events-none'); if (infoTimeout) clearTimeout(infoTimeout); };
+            acceptCookiesBtn.addEventListener('click', () => {
+                localStorage.setItem('cookie_consent', 'accepted');
+                cookieConsentBanner.classList.add('hidden');
+                adPanel.classList.remove('hidden');
+            });
+            declineCookiesBtn.addEventListener('click', () => {
+                localStorage.setItem('cookie_consent', 'declined');
+                cookieConsentBanner.classList.add('hidden');
+                adPanel.classList.add('hidden');
+            });
+        }
+
+        // --- HELPER FUNCTIONS ---
+        function hideModal() {
+            addLocationModal.classList.add('hidden');
+            locationForm.reset();
+            if (newLocationMarker) map.removeLayer(newLocationMarker);
+            newLocationMarker = null;
+            addingLocationMode = false;
+            document.body.style.cursor = '';
+            showInfoMessage("Haz clic en 'Añadir un Punto' para empezar.");
+        }
+
+        function showInfoMessage(message, showClose = false, timeout = 0) {
+            if (infoTimeout) clearTimeout(infoTimeout);
+            infoText.textContent = message;
+            infoPanel.classList.remove('opacity-0', 'pointer-events-none');
+            closeInfoBtn.classList.toggle('hidden', !showClose);
+            if (timeout > 0) { infoTimeout = setTimeout(() => infoPanel.classList.add('opacity-0', 'pointer-events-none'), timeout); }
+        }
+        
+        main();
+    </script>
+</body>
+</html>
