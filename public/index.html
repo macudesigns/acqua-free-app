@@ -306,7 +306,8 @@
             if (timeout > 0) { infoTimeout = setTimeout(() => infoPanel.classList.add('opacity-0', 'pointer-events-none'), timeout); }
         }
         
-        main();
+        // Corrección: Asegura que el script se ejecute después de que la página esté completamente cargada.
+        document.addEventListener('DOMContentLoaded', main);
     </script>
 </body>
 </html>
