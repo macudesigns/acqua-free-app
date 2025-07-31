@@ -5,25 +5,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AquaGratis - Baños y Agua Gratis</title>
 
-    <!-- Estilos (CSS) -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    
+    <!-- ✅ Mapbox GL JS: La nueva librería de mapas -->
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css' rel='stylesheet' />
+
+    <!-- Google Material Symbols -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
-        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: 'Inter', sans-serif; }
-        #map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 10; }
-        .custom-div-icon { background: white; border-radius: 50%; border: 2px solid; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .custom-div-icon.restroom { border-color: #3b82f6; color: #3b82f6; }
-        .custom-div-icon.water { border-color: #16a34a; color: #16a34a; }
+        
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+        }
+        /* Estilos para los marcadores personalizados de Mapbox */
+        .custom-marker {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background: white;
+            border: 2px solid;
+            cursor: pointer;
+        }
+        .custom-marker.restroom { border-color: #3b82f6; color: #3b82f6; }
+        .custom-marker.water { border-color: #16a34a; color: #16a34a; }
+
+        /* Estilos para los popups de Mapbox */
+        .mapboxgl-popup-content {
+            font-family: 'Inter', sans-serif;
+            padding: 10px 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
         .delete-button { margin-top: 10px; padding: 4px 8px; background-color: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px; }
         .delete-button:hover { background-color: #dc2626; }
     </style>
 </head>
 <body class="bg-gray-100">
 
-    <!-- Contenido HTML -->
+    <!-- Contenido HTML (sin cambios) -->
     <header class="absolute top-0 left-0 right-0 z-20 bg-white shadow-md">
         <div class="container mx-auto px-4 py-2 flex justify-between items-center">
             <h1 class="text-2xl font-black"><span class="text-blue-600">Acqua</span><span class="text-gray-800">Gratis</span></h1>
@@ -33,13 +71,10 @@
             </div>
         </div>
     </header>
-
     <div id="map"></div>
-    
-    <!-- Modales y otros paneles -->
     <div id="infoPanel" class="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 bg-white p-4 rounded-lg shadow-lg w-11/12 max-w-md text-center transition-all duration-300 flex items-center justify-between opacity-0 pointer-events-none">
         <p id="infoText"></p>
-        <button id="closeInfoBtn" class="ml-4 text-gray-500 hover:text-gray-800 text-2xl font-bold hidden" aria-label="Cerrar mensaje">&times;</button>
+        <button id="closeInfoBtn" class="ml-4 text-gray-500 hover:text-gray-800 text-2xl font-bold">&times;</button>
     </div>
     <div id="addLocationModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30 flex items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm"><h2 class="text-xl font-bold mb-4">Añadir Nuevo Punto</h2><form id="locationForm"><div><label for="locationType" class="block text-sm font-medium mb-2">Tipo</label><select id="locationType" name="locationType" class="w-full px-3 py-2 border rounded-lg" required><option value="restroom">Baño 🚽</option><option value="water">Agua 💧</option></select></div><div class="mt-4"><label for="locationDescription" class="block text-sm font-medium mb-2">Descripción</label><textarea id="locationDescription" name="locationDescription" rows="3" class="w-full px-3 py-2 border rounded-lg" placeholder="Ej: 'Bien cuidado'"></textarea></div><div class="mt-6 flex justify-end space-x-3"><button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Cancelar</button><button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Guardar</button></div></form></div>
@@ -53,9 +88,6 @@
             <p class="mt-4 text-lg text-center">Cargando AquaGratis...</p>
         </div>
     </div>
-
-    <!-- Scripts -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -71,10 +103,12 @@
           appId: "1:58215481215:web:ce2c8911ab9f81ac5a644a",
           measurementId: "G-X2QXRECDLC"
         };
+        
+        const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoibWFjdWRlc2lnbnMiLCJhIjoiY21kcjdoc2JpMGR0ZDJqcXZqandoejFkdSJ9._GcJkd80H2-W6W3f76-QYw';
 
         const DB_COLLECTION_NAME = 'locations'; 
-        let db, auth, userId, map, newLocationMarker, addingLocationMode = false, infoTimeout, isFirstLoad = true;
-        const markersLayer = L.layerGroup();
+        let db, auth, userId, map, newLocationMarker = null, addingLocationMode = false, infoTimeout;
+        let existingMarkers = {};
         const dom = {
             loader: document.getElementById('loader'),
             loaderContent: document.getElementById('loaderContent'),
@@ -85,6 +119,7 @@
             centerMapBtn: document.getElementById('centerMapBtn'),
             infoPanel: document.getElementById('infoPanel'),
             infoText: document.getElementById('infoText'),
+            closeInfoBtn: document.getElementById('closeInfoBtn'),
             confirmDeleteModal: document.getElementById('confirmDeleteModal'),
             cancelDeleteBtn: document.getElementById('cancelDeleteBtn'),
             confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
@@ -92,91 +127,58 @@
 
         function showError(error) {
             console.error("Error crítico:", error);
-            dom.loader.classList.remove('justify-center');
-            dom.loader.classList.add('justify-start', 'pt-10', 'sm:pt-20');
-            dom.loaderContent.innerHTML = `<div class="text-center p-4 max-w-lg mx-auto"><p class="text-red-500 p-4 text-center">Ocurrió un error inesperado.<br><br><code>${error.message || ''}</code></p></div>`;
+            dom.loader.style.display = 'flex';
+            dom.loaderContent.innerHTML = `<div class="text-center p-4"><p class="text-red-500">Ocurrió un error: ${error.message}</p></div>`;
         }
 
-        async function authenticateUser() {
-            const userCredential = await signInAnonymously(auth);
-            userId = userCredential.user.uid;
-            console.log("Usuario autenticado anónimamente:", userId);
-        }
-
-        // ✅ VERSIÓN MÁS ROBUSTA DE initializeMap, como sugeriste.
-        function initializeMap() {
-            const mapContainer = document.getElementById('map');
-            if (!mapContainer) {
-                showError({ message: 'Elemento #map no encontrado en el DOM.' });
-                return;
-            }
-
-            try {
-                map = L.map('map', { zoomControl: false }).setView([40.416, -3.703], 6);
-                
-                L.control.zoom({ position: 'top-right' }).addTo(map);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '© OpenStreetMap'
-                }).addTo(map);
-
-                markersLayer.addTo(map);
-
-                // Prepara los listeners, pero no localiza todavía.
-                map.on('locationfound', e => {
-                    L.marker(e.latlng).addTo(map).bindPopup(`Estás cerca de aquí`).openPopup();
-                    L.circle(e.latlng, { radius: e.accuracy / 2 }).addTo(map);
-                });
-
-                map.on('locationerror', () => showInfoMessage("No se pudo obtener tu ubicación.", true, 7000));
-            } catch (error) {
-                showError(error);
-            }
-        }
-        
         function listenForLocations() {
             const q = query(collection(db, DB_COLLECTION_NAME));
             onSnapshot(q, (snapshot) => {
-                if (isFirstLoad) {
-                    dom.loader.style.display = 'none';
-                    if (map) {
-                       map.invalidateSize();
-                       // Llama a locate() solo cuando el mapa es visible.
-                       map.locate({ setView: true, maxZoom: 16 });
+                const currentDocIds = [];
+                snapshot.forEach((doc) => {
+                    const docId = doc.id;
+                    const locationData = doc.data();
+                    currentDocIds.push(docId);
+
+                    if (!existingMarkers[docId]) {
+                        addMarkerToMap(locationData, docId);
                     }
-                    showInfoMessage("Mapa cargado. ¡Añade un punto!", true, 6000);
-                    isFirstLoad = false;
-                }
-                markersLayer.clearLayers();
-                snapshot.forEach((doc) => addMarkerToMap(doc.data(), doc.id));
+                });
+
+                Object.keys(existingMarkers).forEach(markerId => {
+                    if (!currentDocIds.includes(markerId)) {
+                        existingMarkers[markerId].remove();
+                        delete existingMarkers[markerId];
+                    }
+                });
             }, (error) => {
-                showError({ code: 'firestore/permission-denied', message: 'No se pudieron cargar los puntos.' });
+                showError({ message: 'No se pudieron cargar los puntos.' });
             });
         }
         
         function addMarkerToMap(location, locationId) {
-            const icon = L.divIcon({ html: location.type === 'restroom' ? '🚽' : '💧', className: `custom-div-icon ${location.type}`, iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -20] });
-            const marker = L.marker([location.lat, location.lng], { icon }).addTo(markersLayer);
+            const el = document.createElement('div');
+            el.className = `custom-marker ${location.type}`;
+            el.innerText = location.type === 'restroom' ? '🚽' : '💧';
+
             let popupContent = `<div class="font-sans"><h3 class="font-bold text-lg">${location.type === 'restroom' ? 'Baño 🚽' : 'Agua 💧'}</h3>${location.description ? `<p class="mt-1">${location.description}</p>` : ''}<p class="text-xs text-gray-400 mt-2">Añadido por: ...${location.userId.slice(-6)}</p>`;
             if (userId === location.userId) {
-                popupContent += `<button id="delete-${locationId}" class="delete-button"><span class="material-symbols-outlined" style="font-size:1rem">delete</span>Borrar</button>`;
+                popupContent += `<button data-location-id="${locationId}" class="delete-button"><span class="material-symbols-outlined" style="font-size:1rem">delete</span>Borrar</button>`;
             }
             popupContent += `</div>`;
-            marker.bindPopup(popupContent);
-            marker.on('popupopen', () => {
-                const delBtn = document.getElementById(`delete-${locationId}`);
-                if (delBtn) {
-                    delBtn.onclick = () => { 
-                        dom.confirmDeleteModal.dataset.locationId = locationId;
-                        dom.confirmDeleteModal.classList.remove('hidden'); 
-                    };
-                }
-            });
+
+            const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(popupContent);
+
+            const marker = new mapboxgl.Marker(el)
+                .setLngLat([location.lng, location.lat])
+                .setPopup(popup)
+                .addTo(map);
+            
+            existingMarkers[locationId] = marker;
         }
 
         function setupEventListeners() {
-            dom.addLocationBtn.onclick = () => { addingLocationMode = true; showInfoMessage("Pulsa en el mapa para marcar la ubicación."); document.body.style.cursor = 'crosshair'; };
-            dom.centerMapBtn.onclick = () => { if(map) map.locate({ setView: true, maxZoom: 16 }); };
+            dom.addLocationBtn.onclick = () => { addingLocationMode = true; showInfoMessage("Pulsa en el mapa para marcar la ubicación."); map.getCanvas().style.cursor = 'crosshair'; };
             dom.cancelBtn.onclick = hideModal;
             dom.locationForm.onsubmit = async (e) => {
                 e.preventDefault();
@@ -185,59 +187,121 @@
                 const button = e.submitter;
                 button.disabled = true;
                 try {
-                    await addDoc(collection(db, DB_COLLECTION_NAME), { lat: newLocationMarker.getLatLng().lat, lng: newLocationMarker.getLatLng().lng, type: formData.get('locationType'), description: formData.get('locationDescription'), userId, createdAt: new Date() });
+                    const coords = newLocationMarker.getLngLat();
+                    await addDoc(collection(db, DB_COLLECTION_NAME), { lat: coords.lat, lng: coords.lng, type: formData.get('locationType'), description: formData.get('locationDescription'), userId, createdAt: new Date() });
                     hideModal();
                     showInfoMessage("¡Punto añadido!", false, 5000);
-                } catch (err) { alert("No se pudo guardar el punto."); }
+                } catch (err) { alert("Error: No se pudo guardar el punto."); }
                 finally { button.disabled = false; }
             };
-            if(map) {
-                map.on('click', (e) => { 
-                    if (!addingLocationMode) return; 
-                    if (newLocationMarker) map.removeLayer(newLocationMarker); 
-                    newLocationMarker = L.marker(e.latlng, { draggable: true }).addTo(map); 
-                    dom.addLocationModal.classList.remove('hidden'); 
-                });
-            }
+
+            map.on('click', (e) => { 
+                if (!addingLocationMode) return; 
+                if (newLocationMarker) newLocationMarker.remove();
+                
+                const el = document.createElement('div');
+                el.className = 'custom-marker water';
+                el.innerText = '➕';
+
+                newLocationMarker = new mapboxgl.Marker({element: el, draggable: true})
+                    .setLngLat(e.lngLat)
+                    .addTo(map);
+                
+                dom.addLocationModal.classList.remove('hidden'); 
+            });
+
             dom.cancelDeleteBtn.onclick = () => dom.confirmDeleteModal.classList.add('hidden');
             dom.confirmDeleteBtn.onclick = async () => {
                 const locId = dom.confirmDeleteModal.dataset.locationId;
                 if (!locId) return;
                 try {
                     await deleteDoc(doc(db, DB_COLLECTION_NAME, locId));
-                    if(map) map.closePopup();
                     showInfoMessage("Punto borrado.", false, 5000);
-                } catch (err) { alert("No se pudo borrar el punto."); } 
+                } catch (err) { alert("Error: No se pudo borrar el punto."); } 
                 finally { dom.confirmDeleteModal.classList.add('hidden'); }
             };
+            dom.closeInfoBtn.onclick = () => { dom.infoPanel.classList.add('opacity-0', 'pointer-events-none'); if (infoTimeout) clearTimeout(infoTimeout); };
+            
+            document.addEventListener('click', function (event) {
+                if (event.target && event.target.matches('.delete-button')) {
+                    const locId = event.target.dataset.locationId;
+                    dom.confirmDeleteModal.dataset.locationId = locId;
+                    dom.confirmDeleteModal.classList.remove('hidden');
+                }
+            });
         }
 
         function hideModal() {
             dom.addLocationModal.classList.add('hidden');
             dom.locationForm.reset();
-            if (newLocationMarker && map) map.removeLayer(newLocationMarker);
+            if (newLocationMarker) newLocationMarker.remove();
             newLocationMarker = null;
             addingLocationMode = false;
-            document.body.style.cursor = '';
+            map.getCanvas().style.cursor = '';
             showInfoMessage("Haz clic en 'Añadir un Punto' para empezar.");
         }
 
-        function showInfoMessage(message, showClose = false, timeout = 0) {
+        function showInfoMessage(message, showClose = true, timeout = 0) {
             if (infoTimeout) clearTimeout(infoTimeout);
             dom.infoText.textContent = message;
             dom.infoPanel.classList.remove('opacity-0', 'pointer-events-none');
+            dom.closeInfoBtn.classList.toggle('hidden', !showClose);
+            if (timeout > 0) {
+                infoTimeout = setTimeout(() => {
+                    dom.infoPanel.classList.add('opacity-0', 'pointer-events-none');
+                }, timeout);
+            }
         }
         
+        function startApp() {
+            const mapContainer = document.getElementById('map');
+            if (!mapContainer) {
+                showError({ message: 'Elemento #map no encontrado.' });
+                return;
+            }
+            try {
+                // ✅ CORRECCIÓN FINAL: Indicar a Mapbox dónde buscar sus archivos 'worker'.
+                mapboxgl.workerUrl = 'https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl-csp-worker.js';
+                mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
+
+                map = new mapboxgl.Map({
+                    container: 'map',
+                    style: 'mapbox://styles/mapbox/streets-v11',
+                    center: [-3.703, 40.416],
+                    zoom: 5
+                });
+
+                map.on('load', () => {
+                    const geolocate = new mapboxgl.GeolocateControl({
+                        positionOptions: { enableHighAccuracy: true },
+                        trackUserLocation: true,
+                        showUserHeading: true
+                    });
+                    map.addControl(geolocate);
+                    
+                    dom.centerMapBtn.onclick = () => geolocate.trigger();
+
+                    setupEventListeners();
+                    listenForLocations();
+                    geolocate.trigger();
+                });
+
+            } catch (error) {
+                showError(error);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             try {
-                initializeApp(firebaseConfig);
-                auth = getAuth();
-                db = getFirestore();
-                authenticateUser()
-                    .then(() => {
-                        initializeMap(); 
-                        setupEventListeners();
-                        listenForLocations();
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                
+                signInAnonymously(auth)
+                    .then((userCred) => {
+                        userId = userCred.user.uid;
+                        dom.loader.style.display = 'none';
+                        startApp();
                     })
                     .catch(showError);
             } catch (error) {
