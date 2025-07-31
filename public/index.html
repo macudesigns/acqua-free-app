@@ -8,9 +8,9 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- ✅ Mapbox GL JS: La nueva librería de mapas -->
-    <script src='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js'></script>
-    <link href='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css' rel='stylesheet' />
+    <!-- ✅ Mapbox GL JS v2.6.1: Versión anterior que no requiere el Worker CSP -->
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.js'></script>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.6.1/mapbox-gl.css' rel='stylesheet' />
 
     <!-- Google Material Symbols -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
@@ -260,8 +260,8 @@
                 return;
             }
             try {
-                // ✅ CORRECCIÓN FINAL: Indicar a Mapbox dónde buscar sus archivos 'worker'.
-                mapboxgl.workerUrl = 'https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl-csp-worker.js';
+                // ✅ CORRECCIÓN FINAL: Indicar a Mapbox la URL base de la API.
+                mapboxgl.baseApiUrl = 'https://api.mapbox.com';
                 mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
 
                 map = new mapboxgl.Map({
