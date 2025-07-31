@@ -17,7 +17,6 @@
 
     <!-- Estilos personalizados -->
     <style>
-        /* Corrección: @import debe estar al principio del todo */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
         
         html, body {
@@ -112,7 +111,8 @@
           apiKey: "AIzaSyDjeKF5bRUUID5ECvqCM_ytOfz5QXD1ya4",
           authDomain: "free-water-toilet.firebaseapp.com",
           projectId: "free-water-toilet",
-          storageBucket: "free-water-toilet.firebasestorage.app",
+          // CORRECCIÓN: El dominio correcto para storageBucket es .appspot.com
+          storageBucket: "free-water-toilet.appspot.com",
           messagingSenderId: "58215481215",
           appId: "1:58215481215:web:ce2c8911ab9f81ac5a644a",
           measurementId: "G-X2QXRECDLC"
@@ -146,6 +146,8 @@
             console.error("Error en la inicialización:", error);
             if (error.code === 'auth/configuration-not-found') {
                 dom.loaderContent.innerHTML = `<div class="text-center p-6 max-w-lg mx-auto bg-white border-4 border-red-500 rounded-lg shadow-2xl"><p class="text-red-600 font-bold text-2xl">¡Atención! Error de Configuración</p><p class="mt-2 text-gray-800 text-lg">El inicio de sesión anónimo no está activado en tu proyecto de Firebase.</p><p class="mt-6 text-md text-left bg-gray-100 p-4 rounded-lg"><strong>Solución Rápida (1 minuto):</strong><br>1. Ve a tu proyecto en la <strong>Consola de Firebase</strong>.<br>2. En el menú, ve a <strong>Authentication</strong>.<br>3. Haz clic en la pestaña <strong>Sign-in method</strong>.<br>4. Busca <strong>"Anónimo"</strong> en la lista y actívalo.</p><button onclick="location.reload()" class="mt-8 bg-blue-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-blue-700">Ya lo activé, reintentar</button></div>`;
+            } else if (error.code === 'auth/unauthorized-domain') {
+                 dom.loaderContent.innerHTML = `<div class="text-center p-6 max-w-lg mx-auto bg-white border-4 border-red-500 rounded-lg shadow-2xl"><p class="text-red-600 font-bold text-2xl">¡Atención! Dominio no Autorizado</p><p class="mt-2 text-gray-800 text-lg">El dominio donde está alojada tu app no está autorizado por Firebase.</p><p class="mt-6 text-md text-left bg-gray-100 p-4 rounded-lg"><strong>Solución Rápida (1 minuto):</strong><br>1. Ve a <strong>Authentication</strong> en tu Consola de Firebase.<br>2. Haz clic en la pestaña <strong>Settings</strong>.<br>3. Ve a <strong>Authorized domains</strong> y haz clic en <strong>Add domain</strong>.<br>4. Añade este dominio: <strong>${location.hostname}</strong></p><button onclick="location.reload()" class="mt-8 bg-blue-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-blue-700">Ya lo autoricé, reintentar</button></div>`;
             } else {
                 dom.loaderContent.innerHTML = `<p class="text-red-500 p-4 text-center">Ocurrió un error inesperado. Revisa la consola del navegador para más detalles.</p>`;
             }
@@ -170,7 +172,6 @@
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
             markersLayer.addTo(map);
 
-            // Corrección: Forzar al mapa a recalcular su tamaño después de un breve instante
             setTimeout(() => {
                 map.invalidateSize();
             }, 100);
@@ -186,7 +187,10 @@
                 markersLayer.clearLayers();
                 snapshot.forEach((doc) => addMarkerToMap(doc.data(), doc.id));
                 dom.loader.style.display = 'none';
-            }, () => showInfoMessage("No se pudieron cargar los puntos.", true, 5000));
+            }, (error) => {
+                console.error("Error al escuchar los puntos:", error);
+                showInfoMessage("No se pudieron cargar los puntos. Revisa las reglas de seguridad de Firestore.", true, 10000);
+            });
         }
 
         function addMarkerToMap(location, locationId) {
@@ -210,11 +214,18 @@
                 e.preventDefault();
                 if (!newLocationMarker) return;
                 const formData = new FormData(dom.locationForm);
+                const button = e.submitter;
+                button.disabled = true;
+                button.classList.add('opacity-50');
                 try {
                     await addDoc(collection(db, DB_COLLECTION_NAME), { lat: newLocationMarker.getLatLng().lat, lng: newLocationMarker.getLatLng().lng, type: formData.get('locationType'), description: formData.get('locationDescription'), userId, createdAt: new Date() });
                     hideModal();
                     showInfoMessage("¡Punto añadido!", false, 5000);
                 } catch (err) { alert("No se pudo guardar el punto."); }
+                finally {
+                    button.disabled = false;
+                    button.classList.remove('opacity-50');
+                }
             };
             map.on('click', (e) => { if (!addingLocationMode) return; if (newLocationMarker) map.removeLayer(newLocationMarker); newLocationMarker = L.marker(e.latlng, { draggable: true }).addTo(map); dom.addLocationModal.classList.remove('hidden'); });
             dom.cancelDeleteBtn.onclick = () => dom.confirmDeleteModal.classList.add('hidden');
