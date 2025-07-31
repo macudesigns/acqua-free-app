@@ -1,0 +1,4 @@
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "worker-src 'self' blob: https://api.mapbox.com;"
