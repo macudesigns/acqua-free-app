@@ -4,37 +4,104 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AquaGratis - Baños y Agua Gratis</title>
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- LeafletJS (Mapa) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- Google Material Symbols -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+    <!-- Estilos personalizados -->
     <style>
-        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: 'Inter', sans-serif; }
-        #map { height: 100%; width: 100%; z-index: 10; }
-        .custom-div-icon { background: white; border-radius: 50%; border: 2px solid; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+        .custom-div-icon {
+            background: white;
+            border-radius: 50%;
+            border: 2px solid;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
         .custom-div-icon.restroom { border-color: #3b82f6; color: #3b82f6; }
         .custom-div-icon.water { border-color: #16a34a; color: #16a34a; }
-        .delete-button { margin-top: 10px; padding: 4px 8px; background-color: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px; }
+        .delete-button {
+            margin-top: 10px; padding: 4px 8px; background-color: #ef4444; color: white;
+            border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;
+            display: inline-flex; align-items: center; gap: 4px;
+        }
         .delete-button:hover { background-color: #dc2626; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
     </style>
 </head>
 <body class="bg-gray-100">
+
+    <!-- Header -->
+    <header class="absolute top-0 left-0 right-0 z-20 bg-white shadow-md">
+        <div class="container mx-auto px-4 py-2 flex justify-between items-center">
+            <h1 class="text-2xl font-black">
+                <span class="text-blue-600">Acqua</span><span class="text-gray-800">Gratis</span>
+            </h1>
+            <div class="flex items-center space-x-2">
+                <button id="addLocationBtn" class="bg-blue-600 text-white px-3 py-2 rounded-lg shadow hover:bg-blue-700 flex items-center gap-2 text-sm">
+                    <span class="material-symbols-outlined">add_location</span>
+                    <span>Añadir</span>
+                </button>
+                <button id="centerMapBtn" class="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-300 flex items-center gap-2 text-sm">
+                    <span class="material-symbols-outlined">my_location</span>
+                    <span>Ubicar</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenedor del mapa -->
     <div id="map"></div>
-    <div class="absolute top-4 right-4 z-20 flex flex-col space-y-2">
-        <button id="addLocationBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-blue-700 flex items-center gap-2"><span class="material-symbols-outlined">add_location</span><span>Añadir Punto</span></button>
-        <button id="centerMapBtn" class="bg-white text-gray-700 px-4 py-2 rounded-lg shadow-lg hover:bg-gray-100 flex items-center gap-2"><span class="material-symbols-outlined">my_location</span><span>Mi Ubicación</span></button>
-    </div>
+    
+    <!-- Panel de instrucciones/información -->
     <div id="infoPanel" class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 bg-white p-4 rounded-lg shadow-lg w-11/12 max-w-md text-center transition-all duration-300 flex items-center justify-between opacity-0 pointer-events-none">
         <p id="infoText"></p>
-        <button id="closeInfoBtn" class="ml-4 text-gray-500 hover:text-gray-800 text-2xl font-bold hidden">&times;</button>
+        <button id="closeInfoBtn" class="ml-4 text-gray-500 hover:text-gray-800 text-2xl font-bold hidden" aria-label="Cerrar mensaje">&times;</button>
     </div>
-    <div id="adPanel" class="absolute bottom-4 left-4 z-20 bg-white p-2 rounded-lg shadow-lg w-52 max-w-xs">
-        <button id="closeAdBtn" class="absolute top-0 right-1 text-gray-500 hover:text-gray-800 text-xl font-bold">&times;</button>
+
+    <!-- Panel de Publicidad -->
+    <div id="adPanel" class="hidden absolute bottom-4 left-4 z-20 bg-white p-2 rounded-lg shadow-lg w-52 max-w-xs transition-opacity duration-300">
+        <button id="closeAdBtn" class="absolute top-0 right-1 text-gray-500 hover:text-gray-800 text-xl font-bold" aria-label="Cerrar publicidad">&times;</button>
         <h4 class="font-bold text-xs text-gray-800 mb-1">Publicidad</h4>
-        <a href="#" target="_blank" rel="noopener noreferrer"><img src="https://placehold.co/200x80/E2E8F0/4A5568?text=Tu+Anuncio" alt="Anuncio" class="rounded-md mb-1 w-full"></a>
+        <a href="#" target="_blank" rel="noopener noreferrer">
+            <img src="https://placehold.co/200x80/E2E8F0/4A5568?text=Tu+Anuncio" 
+                 onerror="this.onerror=null;this.src='https://placehold.co/200x80/E2E8F0/4A5568?text=Anuncio';"
+                 alt="Anuncio" class="rounded-md mb-1 w-full">
+        </a>
         <p class="text-xs text-gray-600 leading-tight">Las mejores botellas de agua.</p>
         <a href="#" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-blue-600 hover:underline">Ver ofertas &rarr;</a>
     </div>
+
+    <!-- Banner de Consentimiento de Cookies -->
+    <div id="cookieConsentBanner" class="hidden fixed bottom-0 left-0 right-0 bg-gray-800 text-white p-4 z-50 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <p class="text-sm text-center sm:text-left">Usamos cookies para mejorar tu experiencia y mostrarte anuncios relevantes. ¿Aceptas su uso?</p>
+        <div class="flex-shrink-0 flex gap-3">
+            <button id="declineCookiesBtn" class="text-sm text-gray-400 hover:text-white">Rechazar</button>
+            <button id="acceptCookiesBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm">Aceptar</button>
+        </div>
+    </div>
+
+    <!-- Modals -->
     <div id="addLocationModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30 flex items-center justify-center p-4">
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm"><h2 class="text-xl font-bold mb-4 text-gray-800">Añadir Nuevo Punto</h2><form id="locationForm"><div><label for="locationType" class="block text-sm font-medium text-gray-700 mb-2">Tipo</label><select id="locationType" name="locationType" class="w-full px-3 py-2 border border-gray-300 rounded-lg" required><option value="restroom">Baño 🚽</option><option value="water">Agua 💧</option></select></div><div class="mt-4"><label for="locationDescription" class="block text-sm font-medium text-gray-700 mb-2">Descripción</label><textarea id="locationDescription" name="locationDescription" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Ej: 'Bien cuidado'"></textarea></div><div class="mt-6 flex justify-end space-x-3"><button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 flex items-center gap-2"><span class="material-symbols-outlined">cancel</span><span>Cancelar</span></button><button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"><span class="material-symbols-outlined">save</span><span>Guardar</span></button></div></form></div>
     </div>
@@ -47,12 +114,12 @@
             <p class="mt-4 text-lg text-center">Cargando AquaGratis...</p>
         </div>
     </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
-        // --- Configuración de Firebase ---
         const firebaseConfig = {
           apiKey: "AIzaSyDjeKF5bRUUID5ECvqCM_ytOfz5QXD1ya4",
           authDomain: "free-water-toilet.firebaseapp.com",
@@ -62,13 +129,12 @@
           appId: "1:58215481215:web:ce2c8911ab9f81ac5a644a",
           measurementId: "G-X2QXRECDLC"
         };
-        // -----------------------------------------
 
         const appId = 'aquagratis-app';
         let db, auth, userId, map, newLocationMarker, addingLocationMode = false, infoTimeout;
         const markersLayer = L.layerGroup();
 
-        // Elementos del DOM
+        // DOM Elements
         const loader = document.getElementById('loader');
         const loaderContent = document.getElementById('loaderContent');
         const addLocationModal = document.getElementById('addLocationModal');
@@ -84,9 +150,13 @@
         const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
         const adPanel = document.getElementById('adPanel');
         const closeAdBtn = document.getElementById('closeAdBtn');
+        const cookieConsentBanner = document.getElementById('cookieConsentBanner');
+        const acceptCookiesBtn = document.getElementById('acceptCookiesBtn');
+        const declineCookiesBtn = document.getElementById('declineCookiesBtn');
 
-        // --- INICIALIZACIÓN ---
+        // --- INITIALIZATION ---
         async function main() {
+            handleCookieConsent();
             try {
                 const app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
@@ -97,8 +167,7 @@
                 listenForLocations();
             } catch (error) {
                 console.error("Error en la inicialización:", error);
-                if (error.code === 'auth/configuration-not-found') {
-                    loaderContent.innerHTML = `
+                 loaderContent.innerHTML = `
                         <div class="text-center p-6 max-w-lg mx-auto bg-white border-4 border-red-500 rounded-lg shadow-2xl">
                             <p class="text-red-600 font-bold text-2xl">¡Atención! Error de Configuración</p>
                             <p class="mt-2 text-gray-800 text-lg">El inicio de sesión anónimo no está activado en tu proyecto de Firebase.</p>
@@ -106,35 +175,46 @@
                                 <strong>Solución Rápida (1 minuto):</strong><br>
                                 1. Ve a tu proyecto en la <strong>Consola de Firebase</strong>.<br>
                                 2. En el menú de la izquierda, ve a <strong>Authentication</strong>.<br>
-                                3. Haz clic en la pestaña <strong>Sign-in method</strong> (o Proveedores de inicio de sesión).<br>
-                                4. Busca <strong>"Anónimo"</strong> en la lista y haz clic en el lápiz para activarlo.
+                                3. Haz clic en la pestaña <strong>Sign-in method</strong>.<br>
+                                4. Busca <strong>"Anónimo"</strong> en la lista y actívalo.
                             </p>
-                            <button onclick="location.reload()" class="mt-8 bg-blue-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105">Ya lo activé, reintentar</button>
+                            <button onclick="location.reload()" class="mt-8 bg-blue-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-blue-700">Ya lo activé, reintentar</button>
                         </div>`;
-                } else {
-                    loaderContent.innerHTML = '<p class="text-red-500 p-4 text-center">Ocurrió un error inesperado al cargar la aplicación. Revisa la consola del navegador para más detalles.</p>';
-                }
             }
         }
 
-        async function authenticateUser() {
-            const userCredential = await signInAnonymously(auth);
-            userId = userCredential.user.uid;
-            console.log("Usuario autenticado anónimamente:", userId);
+        // --- COOKIE CONSENT ---
+        function handleCookieConsent() {
+            const consent = localStorage.getItem('cookie_consent');
+            if (consent === 'accepted') {
+                adPanel.classList.remove('hidden');
+            } else if (consent === 'declined') {
+                adPanel.classList.add('hidden');
+            } else {
+                cookieConsentBanner.classList.remove('hidden');
+            }
         }
 
+        // --- AUTHENTICATION ---
+        async function authenticateUser() {
+            try {
+                const userCredential = await signInAnonymously(auth);
+                userId = userCredential.user.uid;
+                console.log("Usuario autenticado anónimamente:", userId);
+            } catch(error) {
+                console.error("Error de autenticación:", error);
+                throw error; // Stop execution if auth fails
+            }
+        }
+        
+        // --- MAP LOGIC ---
         function initializeMap() {
-            map = L.map('map').setView([40.416, -3.703], 6);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap'
-            }).addTo(map);
+            map = L.map('map', { zoomControl: false }).setView([40.416, -3.703], 6);
+            L.control.zoom({ position: 'top-right' }).addTo(map);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
             markersLayer.addTo(map);
             map.locate({ setView: true, maxZoom: 16 });
-            map.on('locationfound', e => {
-                L.marker(e.latlng).addTo(map).bindPopup(`Estás cerca de aquí`).openPopup();
-                L.circle(e.latlng, e.accuracy / 2).addTo(map);
-            });
+            map.on('locationfound', e => { L.marker(e.latlng).addTo(map).bindPopup(`Estás cerca de aquí`).openPopup(); L.circle(e.latlng, e.accuracy / 2).addTo(map); });
             map.on('locationerror', () => showInfoMessage("No se pudo obtener tu ubicación.", true, 7000));
         }
 
@@ -148,13 +228,7 @@
         }
 
         function addMarkerToMap(location, locationId) {
-            const icon = L.divIcon({
-                html: location.type === 'restroom' ? '🚽' : '💧',
-                className: `custom-div-icon ${location.type}`,
-                iconSize: [30, 30],
-                iconAnchor: [15, 15],
-                popupAnchor: [0, -20]
-            });
+            const icon = L.divIcon({ html: location.type === 'restroom' ? '🚽' : '💧', className: `custom-div-icon ${location.type}`, iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -20] });
             const marker = L.marker([location.lat, location.lng], { icon }).addTo(markersLayer);
             let popupContent = `<div class="font-sans"><h3 class="font-bold text-lg">${location.type === 'restroom' ? 'Baño 🚽' : 'Agua 💧'}</h3>${location.description ? `<p class="mt-1">${location.description}</p>` : ''}<p class="text-xs text-gray-400 mt-2">ID: ...${location.userId.slice(-6)}</p>`;
             if (userId === location.userId) {
@@ -164,21 +238,13 @@
             marker.bindPopup(popupContent);
             marker.on('popupopen', () => {
                 const delBtn = document.getElementById(`delete-${locationId}`);
-                if (delBtn) {
-                    delBtn.onclick = () => {
-                        confirmDeleteModal.dataset.locationId = locationId;
-                        confirmDeleteModal.classList.remove('hidden');
-                    };
-                }
+                if (delBtn) { delBtn.onclick = () => { confirmDeleteModal.dataset.locationId = locationId; confirmDeleteModal.classList.remove('hidden'); }; }
             });
         }
 
+        // --- UI EVENT LISTENERS ---
         function setupEventListeners() {
-            addLocationBtn.onclick = () => {
-                addingLocationMode = true;
-                showInfoMessage("Pulsa en el mapa para marcar la ubicación.");
-                document.body.style.cursor = 'crosshair';
-            };
+            addLocationBtn.onclick = () => { addingLocationMode = true; showInfoMessage("Pulsa en el mapa para marcar la ubicación."); document.body.style.cursor = 'crosshair'; };
             centerMapBtn.onclick = () => map.locate({ setView: true, maxZoom: 16 });
             cancelBtn.onclick = hideModal;
             locationForm.onsubmit = async (e) => {
@@ -186,26 +252,12 @@
                 if (!newLocationMarker) return;
                 const formData = new FormData(locationForm);
                 try {
-                    await addDoc(collection(db, `artifacts/${appId}/public/data/locations`), {
-                        lat: newLocationMarker.getLatLng().lat,
-                        lng: newLocationMarker.getLatLng().lng,
-                        type: formData.get('locationType'),
-                        description: formData.get('locationDescription'),
-                        userId,
-                        createdAt: new Date()
-                    });
+                    await addDoc(collection(db, `artifacts/${appId}/public/data/locations`), { lat: newLocationMarker.getLatLng().lat, lng: newLocationMarker.getLatLng().lng, type: formData.get('locationType'), description: formData.get('locationDescription'), userId, createdAt: new Date() });
                     hideModal();
                     showInfoMessage("¡Punto añadido!", false, 5000);
-                } catch (err) {
-                    alert("No se pudo guardar el punto.");
-                }
+                } catch (err) { alert("No se pudo guardar el punto."); }
             };
-            map.on('click', (e) => {
-                if (!addingLocationMode) return;
-                if (newLocationMarker) map.removeLayer(newLocationMarker);
-                newLocationMarker = L.marker(e.latlng, { draggable: true }).addTo(map);
-                addLocationModal.classList.remove('hidden');
-            });
+            map.on('click', (e) => { if (!addingLocationMode) return; if (newLocationMarker) map.removeLayer(newLocationMarker); newLocationMarker = L.marker(e.latlng, { draggable: true }).addTo(map); addLocationModal.classList.remove('hidden'); });
             cancelDeleteBtn.onclick = () => confirmDeleteModal.classList.add('hidden');
             confirmDeleteBtn.onclick = async () => {
                 const locId = confirmDeleteModal.dataset.locationId;
@@ -214,19 +266,23 @@
                     await deleteDoc(doc(db, `artifacts/${appId}/public/data/locations`, locId));
                     map.closePopup();
                     showInfoMessage("Punto borrado.", false, 5000);
-                } catch (err) {
-                    alert("No se pudo borrar el punto.");
-                } finally {
-                    confirmDeleteModal.classList.add('hidden');
-                }
+                } catch (err) { alert("No se pudo borrar el punto."); } finally { confirmDeleteModal.classList.add('hidden'); }
             };
             closeAdBtn.onclick = () => adPanel.style.display = 'none';
-            closeInfoBtn.onclick = () => {
-                infoPanel.classList.add('opacity-0', 'pointer-events-none');
-                if (infoTimeout) clearTimeout(infoTimeout);
-            };
+            closeInfoBtn.onclick = () => { infoPanel.classList.add('opacity-0', 'pointer-events-none'); if (infoTimeout) clearTimeout(infoTimeout); };
+            acceptCookiesBtn.addEventListener('click', () => {
+                localStorage.setItem('cookie_consent', 'accepted');
+                cookieConsentBanner.classList.add('hidden');
+                adPanel.classList.remove('hidden');
+            });
+            declineCookiesBtn.addEventListener('click', () => {
+                localStorage.setItem('cookie_consent', 'declined');
+                cookieConsentBanner.classList.add('hidden');
+                adPanel.classList.add('hidden');
+            });
         }
 
+        // --- HELPER FUNCTIONS ---
         function hideModal() {
             addLocationModal.classList.add('hidden');
             locationForm.reset();
@@ -242,9 +298,7 @@
             infoText.textContent = message;
             infoPanel.classList.remove('opacity-0', 'pointer-events-none');
             closeInfoBtn.classList.toggle('hidden', !showClose);
-            if (timeout > 0) {
-                infoTimeout = setTimeout(() => infoPanel.classList.add('opacity-0', 'pointer-events-none'), timeout);
-            }
+            if (timeout > 0) { infoTimeout = setTimeout(() => infoPanel.classList.add('opacity-0', 'pointer-events-none'), timeout); }
         }
         
         main();
