@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AcquaPee - Baños y Agua Gratis</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%233b82f6' d='M12 2c-5.33 4.55-8 8.48-8 11.8c0 4.42 3.58 8 8 8s8-3.58 8-8c0-3.32-2.67-7.25-8-11.8z'/%3E%3C/svg%3E">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -212,7 +215,7 @@
             el.className = `custom-marker ${location.type}-marker`;
             el.innerHTML = location.type === 'restroom' ? '🚽' : '💧';
 
-            let popupContent = `<div class="font-sans"><h3 class="font-bold text-lg">${location.type === 'restroom' ? 'Baño 🚽' : 'Agua �'}</h3>${location.description ? `<p class="mt-1">${location.description}</p>` : ''}<p class="text-xs text-gray-400 mt-2">ID: ...${location?.userId ? location.userId.slice(-6) : 'anon'}</p>`;
+            let popupContent = `<div class="font-sans"><h3 class="font-bold text-lg">${location.type === 'restroom' ? 'Baño 🚽' : 'Agua 💧'}</h3>${location.description ? `<p class="mt-1">${location.description}</p>` : ''}<p class="text-xs text-gray-400 mt-2">ID: ...${location?.userId ? location.userId.slice(-6) : 'anon'}</p>`;
             if (userId === location.userId) {
                 popupContent += `<button data-location-id="${locationId}" class="delete-button"><span class="material-symbols-outlined" style="font-size:1rem">delete</span>Borrar</button>`;
             }
@@ -296,4 +299,3 @@
     </script>
 </body>
 </html>
-�
