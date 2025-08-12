@@ -43,7 +43,6 @@
             bottom: 0;
             z-index: 10; 
         }
-        /* Estilos para los marcadores personalizados de Mapbox */
         .custom-marker {
             background-size: cover;
             width: 36px;
@@ -72,7 +71,6 @@
         }
         .delete-button:hover { background-color: #dc2626; }
         
-        /* Corrección: Empuja los controles de Mapbox hacia abajo */
         .mapboxgl-ctrl-top-right {
             margin-top: 70px;
         }
@@ -171,16 +169,34 @@
             declineCookiesBtn: document.getElementById('declineCookiesBtn')
         };
 
-        function showError(error) { /* ... (código sin cambios) */ }
-        function handleCookieConsent() { /* ... (código sin cambios) */ }
-        async function authenticateUser() { /* ... (código sin cambios) */ }
-        
+        function showError(error) {
+            console.error("Error en la inicialización:", error);
+            if (error.code === 'auth/configuration-not-found') {
+                dom.loaderContent.innerHTML = `<div class="text-center p-6 max-w-lg mx-auto bg-white border-4 border-red-500 rounded-lg shadow-2xl"><p class="text-red-600 font-bold text-2xl">¡Atención! Error de Configuración</p><p class="mt-2 text-gray-800 text-lg">El inicio de sesión anónimo no está activado en tu proyecto de Firebase.</p><p class="mt-6 text-md text-left bg-gray-100 p-4 rounded-lg"><strong>Solución Rápida (1 minuto):</strong><br>1. Ve a tu proyecto en la <strong>Consola de Firebase</strong>.<br>2. En el menú, ve a <strong>Authentication</strong>.<br>3. Haz clic en la pestaña <strong>Sign-in method</strong>.<br>4. Busca <strong>"Anónimo"</strong> en la lista y actívalo.</p><button onclick="location.reload()" class="mt-8 bg-blue-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-blue-700">Ya lo activé, reintentar</button></div>`;
+            } else {
+                dom.loaderContent.innerHTML = `<p class="text-red-500 p-4 text-center">Ocurrió un error inesperado. Revisa la consola del navegador para más detalles.</p>`;
+            }
+        }
+
+        function handleCookieConsent() {
+            const consent = localStorage.getItem('cookie_consent');
+            if (consent === 'accepted') dom.adPanel.classList.remove('hidden');
+            else if (consent === 'declined') dom.adPanel.classList.add('hidden');
+            else dom.cookieConsentBanner.classList.remove('hidden');
+        }
+
+        async function authenticateUser() {
+            const userCredential = await signInAnonymously(auth);
+            userId = userCredential.user.uid;
+            console.log("Usuario autenticado anónimamente:", userId);
+        }
+
         function initializeMap() {
             mapboxgl.accessToken = MAPBOX_API_KEY;
             map = new mapboxgl.Map({
                 container: 'map',
                 style: 'mapbox://styles/mapbox/streets-v12',
-                center: [-3.703790, 40.416775], // [lng, lat]
+                center: [-3.703790, 40.416775],
                 zoom: 5
             });
 
@@ -204,10 +220,12 @@
             const q = query(collection(db, DB_COLLECTION_NAME));
             onSnapshot(q, (snapshot) => {
                 document.querySelectorAll('.custom-marker').forEach(marker => marker.remove());
-                
                 snapshot.forEach((doc) => addMarkerToMap(doc.data(), doc.id));
                 dom.loader.style.display = 'none';
-            }, () => showInfoMessage("No se pudieron cargar los puntos.", true, 5000));
+            }, (err) => {
+                console.error("Error al escuchar ubicaciones:", err);
+                showInfoMessage("No se pudieron cargar los puntos.", true, 5000);
+            });
         }
 
         function addMarkerToMap(location, locationId) {
@@ -229,15 +247,15 @@
                 .addTo(map);
         }
         
-        document.addEventListener('click', function (e) {
-            if (e.target && e.target.classList.contains('delete-button')) {
-                const locationId = e.target.getAttribute('data-location-id');
-                dom.confirmDeleteModal.dataset.locationId = locationId;
-                dom.confirmDeleteModal.classList.remove('hidden');
-            }
-        });
-
         function setupEventListeners() {
+            document.addEventListener('click', function (e) {
+                if (e.target && e.target.closest('.delete-button')) {
+                    const locationId = e.target.closest('.delete-button').getAttribute('data-location-id');
+                    dom.confirmDeleteModal.dataset.locationId = locationId;
+                    dom.confirmDeleteModal.classList.remove('hidden');
+                }
+            });
+
             dom.addLocationBtn.onclick = () => { addingLocationMode = true; showInfoMessage("Pulsa en el mapa para marcar la ubicación."); map.getCanvas().style.cursor = 'crosshair'; };
             dom.cancelBtn.onclick = hideModal;
             dom.locationForm.onsubmit = async (e) => {
@@ -258,6 +276,20 @@
                 dom.addLocationModal.classList.remove('hidden'); 
             });
             dom.cancelDeleteBtn.onclick = () => dom.confirmDeleteModal.classList.add('hidden');
+            dom.confirmDeleteBtn.onclick = async () => {
+                const locId = dom.confirmDeleteModal.dataset.locationId;
+                if (!locId) return;
+                try {
+                    await deleteDoc(doc(db, DB_COLLECTION_NAME, locId));
+                    // Cierra cualquier popup abierto
+                    document.querySelector('.mapboxgl-popup-close-button')?.click();
+                    showInfoMessage("Punto borrado.", false, 5000);
+                } catch (err) { alert("No se pudo borrar el punto."); } finally { dom.confirmDeleteModal.classList.add('hidden'); }
+            };
+            dom.closeAdBtn.onclick = () => dom.adPanel.style.display = 'none';
+            dom.closeInfoBtn.onclick = () => { dom.infoPanel.classList.add('opacity-0', 'pointer-events-none'); if (infoTimeout) clearTimeout(infoTimeout); };
+            dom.acceptCookiesBtn.onclick = () => { localStorage.setItem('cookie_consent', 'accepted'); dom.cookieConsentBanner.classList.add('hidden'); dom.adPanel.classList.remove('hidden'); };
+            dom.declineCookiesBtn.onclick = () => { localStorage.setItem('cookie_consent', 'declined'); dom.cookieConsentBanner.classList.add('hidden'); dom.adPanel.classList.add('hidden'); };
         }
 
         function hideModal() {
@@ -270,17 +302,16 @@
             showInfoMessage("Haz clic en 'Añadir un Punto' para empezar.");
         }
         
+        function showInfoMessage(message, showClose = false, timeout = 0) {
+            if (infoTimeout) clearTimeout(infoTimeout);
+            dom.infoText.textContent = message;
+            dom.infoPanel.classList.remove('opacity-0', 'pointer-events-none');
+            dom.closeInfoBtn.classList.toggle('hidden', !showClose);
+            if (timeout > 0) infoTimeout = setTimeout(() => dom.infoPanel.classList.add('opacity-0', 'pointer-events-none'), timeout);
+        }
+        
+        // --- START APP ---
         document.addEventListener('DOMContentLoaded', () => {
-            showError = function(error) { console.error("Error:", error); if (error.code === 'auth/configuration-not-found') { dom.loaderContent.innerHTML = `<div class="text-center p-6 max-w-lg mx-auto bg-white border-4 border-red-500 rounded-lg shadow-2xl"><p class="text-red-600 font-bold text-2xl">¡Atención! Error de Configuración</p><p class="mt-2 text-gray-800 text-lg">El inicio de sesión anónimo no está activado en tu proyecto de Firebase.</p><p class="mt-6 text-md text-left bg-gray-100 p-4 rounded-lg"><strong>Solución Rápida (1 minuto):</strong><br>1. Ve a tu proyecto en la <strong>Consola de Firebase</strong>.<br>2. En el menú, ve a <strong>Authentication</strong>.<br>3. Haz clic en la pestaña <strong>Sign-in method</strong>.<br>4. Busca <strong>"Anónimo"</strong> en la lista y actívalo.</p><button onclick="location.reload()" class="mt-8 bg-blue-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-blue-700">Ya lo activé, reintentar</button></div>`; } else { dom.loaderContent.innerHTML = `<p class="text-red-500 p-4 text-center">Ocurrió un error inesperado.</p>`; } };
-            handleCookieConsent = function() { const c = localStorage.getItem('cookie_consent'); if (c === 'accepted') dom.adPanel.classList.remove('hidden'); else if (c !== 'declined') dom.cookieConsentBanner.classList.remove('hidden'); };
-            authenticateUser = async function() { const cred = await signInAnonymously(auth); userId = cred.user.uid; console.log("User:", userId); };
-            dom.confirmDeleteBtn.onclick = async () => { const id = dom.confirmDeleteModal.dataset.locationId; if (!id) return; try { await deleteDoc(doc(db, DB_COLLECTION_NAME, id)); map.getCanvas()._container.querySelector('.mapboxgl-popup-close-button')?.click(); showInfoMessage("Punto borrado.", false, 5000); } catch (e) { alert("No se pudo borrar."); } finally { dom.confirmDeleteModal.classList.add('hidden'); } };
-            dom.acceptCookiesBtn.onclick = () => { localStorage.setItem('cookie_consent', 'accepted'); dom.cookieConsentBanner.classList.add('hidden'); dom.adPanel.classList.remove('hidden'); };
-            dom.declineCookiesBtn.onclick = () => { localStorage.setItem('cookie_consent', 'declined'); dom.cookieConsentBanner.classList.add('hidden'); dom.adPanel.classList.add('hidden'); };
-            showInfoMessage = function(message, showClose = false, timeout = 0) { if (infoTimeout) clearTimeout(infoTimeout); dom.infoText.textContent = message; dom.infoPanel.classList.remove('opacity-0', 'pointer-events-none'); dom.closeInfoBtn.classList.toggle('hidden', !showClose); if (timeout > 0) infoTimeout = setTimeout(() => dom.infoPanel.classList.add('opacity-0', 'pointer-events-none'), timeout); };
-            dom.closeInfoBtn.onclick = () => { dom.infoPanel.classList.add('opacity-0', 'pointer-events-none'); if (infoTimeout) clearTimeout(infoTimeout); };
-            dom.closeAdBtn.onclick = () => dom.adPanel.style.display = 'none';
-
             try {
                 const app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
