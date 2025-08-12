@@ -184,7 +184,7 @@
             setTimeout(() => {
                 map.invalidateSize();
                 map.locate({ setView: true, maxZoom: 16 });
-            }, 150); // Aumentamos ligeramente el tiempo de espera para asegurar que todo esté listo
+            }, 150);
 
             map.on('locationfound', e => { L.marker(e.latlng).addTo(map).bindPopup(`Estás cerca de aquí`).openPopup(); L.circle(e.latlng, e.accuracy / 2).addTo(map); });
             map.on('locationerror', () => showInfoMessage("No se pudo obtener tu ubicación.", true, 7000));
@@ -200,7 +200,7 @@
         }
 
         function addMarkerToMap(location, locationId) {
-            const icon = L.divIcon({ html: location.type === 'restroom' ? '🚽' : '💧', className: `custom-div-icon ${location.type}`, iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -20] });
+            const icon = L.divIcon({ html: location.type === 'restroom' ? '🚽' : '�', className: `custom-div-icon ${location.type}`, iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -20] });
             const marker = L.marker([location.lat, location.lng], { icon }).addTo(markersLayer);
             let popupContent = `<div class="font-sans"><h3 class="font-bold text-lg">${location.type === 'restroom' ? 'Baño 🚽' : 'Agua 💧'}</h3>${location.description ? `<p class="mt-1">${location.description}</p>` : ''}<p class="text-xs text-gray-400 mt-2">ID: ...${location.userId.slice(-6)}</p>`;
             if (userId === location.userId) popupContent += `<button id="delete-${locationId}" class="delete-button"><span class="material-symbols-outlined" style="font-size:1rem">delete</span>Borrar</button>`;
@@ -282,3 +282,4 @@
     </script>
 </body>
 </html>
+�
