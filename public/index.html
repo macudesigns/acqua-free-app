@@ -20,6 +20,9 @@
 
     <!-- Estilos personalizados -->
     <style>
+        /* Corrección: @import debe estar al principio del todo */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap');
+        
         html, body {
             height: 100%;
             margin: 0;
@@ -70,14 +73,8 @@
                 </h1>
             </div>
             <div class="flex items-center space-x-2">
-                <button id="addLocationBtn" class="bg-blue-600 text-white px-3 py-2 rounded-lg shadow hover:bg-blue-700 flex items-center gap-2 text-sm">
-                    <span class="material-symbols-outlined">add_location</span>
-                    <span>Añadir</span>
-                </button>
-                <button id="centerMapBtn" class="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-300 flex items-center gap-2 text-sm">
-                    <span class="material-symbols-outlined">my_location</span>
-                    <span>Ubicar</span>
-                </button>
+                <button id="addLocationBtn" class="bg-blue-600 text-white px-3 py-2 rounded-lg shadow hover:bg-blue-700 flex items-center gap-2 text-sm"><span class="material-symbols-outlined">add_location</span><span>Añadir</span></button>
+                <button id="centerMapBtn" class="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-300 flex items-center gap-2 text-sm"><span class="material-symbols-outlined">my_location</span><span>Ubicar</span></button>
             </div>
         </div>
     </header>
@@ -183,8 +180,12 @@
             L.control.zoom({ position: 'top-right' }).addTo(map);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
             markersLayer.addTo(map);
-            setTimeout(() => { map.invalidateSize(); }, 100);
-            map.locate({ setView: true, maxZoom: 16 });
+            
+            setTimeout(() => {
+                map.invalidateSize();
+                map.locate({ setView: true, maxZoom: 16 });
+            }, 150); // Aumentamos ligeramente el tiempo de espera para asegurar que todo esté listo
+
             map.on('locationfound', e => { L.marker(e.latlng).addTo(map).bindPopup(`Estás cerca de aquí`).openPopup(); L.circle(e.latlng, e.accuracy / 2).addTo(map); });
             map.on('locationerror', () => showInfoMessage("No se pudo obtener tu ubicación.", true, 7000));
         }
@@ -260,6 +261,7 @@
             if (timeout > 0) infoTimeout = setTimeout(() => dom.infoPanel.classList.add('opacity-0', 'pointer-events-none'), timeout);
         }
         
+        // --- START APP ---
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 const app = initializeApp(firebaseConfig);
