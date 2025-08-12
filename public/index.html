@@ -66,15 +66,22 @@
     <!-- Header -->
     <header class="absolute top-0 left-0 right-0 z-20 bg-white shadow-md">
         <div class="container mx-auto px-4 py-2 flex justify-between items-center">
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-blue-600 text-3xl">water_drop</span>
-                <h1 class="text-2xl logo-font">
+            <!-- Corrección: Reducido el gap y ajustado el tamaño de la fuente para móviles -->
+            <div class="flex items-center gap-1">
+                <span class="material-symbols-outlined text-blue-600 text-2xl sm:text-3xl">water_drop</span>
+                <h1 class="text-xl sm:text-2xl logo-font">
                     <span class="text-blue-600">Acqua</span><span class="text-black">Pee</span>
                 </h1>
             </div>
             <div class="flex items-center space-x-2">
-                <button id="addLocationBtn" class="bg-blue-600 text-white px-3 py-2 rounded-lg shadow hover:bg-blue-700 flex items-center gap-2 text-sm"><span class="material-symbols-outlined">add_location</span><span>Añadir</span></button>
-                <button id="centerMapBtn" class="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-300 flex items-center gap-2 text-sm"><span class="material-symbols-outlined">my_location</span><span>Ubicar</span></button>
+                <button id="addLocationBtn" class="bg-blue-600 text-white px-3 py-2 rounded-lg shadow hover:bg-blue-700 flex items-center gap-2 text-sm">
+                    <span class="material-symbols-outlined">add_location</span>
+                    <span>Añadir</span>
+                </button>
+                <button id="centerMapBtn" class="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-300 flex items-center gap-2 text-sm">
+                    <span class="material-symbols-outlined">my_location</span>
+                    <span>Ubicar</span>
+                </button>
             </div>
         </div>
     </header>
@@ -177,7 +184,6 @@
 
         function initializeMap() {
             map = L.map('map', { zoomControl: false }).setView([40.416, -3.703], 6);
-            // Corrección: Cambiar 'top-right' por 'topright'
             L.control.zoom({ position: 'topright' }).addTo(map);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
             markersLayer.addTo(map);
@@ -201,11 +207,9 @@
         }
 
         function addMarkerToMap(location, locationId) {
-            // Corrección: Asegurar que el emoji '💧' sea correcto
             const icon = L.divIcon({ html: location.type === 'restroom' ? '🚽' : '💧', className: `custom-div-icon ${location.type}`, iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -20] });
             const marker = L.marker([location.lat, location.lng], { icon }).addTo(markersLayer);
-            // Corrección: Añadir protección para userId
-            let popupContent = `<div class="font-sans"><h3 class="font-bold text-lg">${location.type === 'restroom' ? 'Baño 🚽' : 'Agua 💧'}</h3>${location.description ? `<p class="mt-1">${location.description}</p>` : ''}<p class="text-xs text-gray-400 mt-2">ID: ...${location?.userId ? location.userId.slice(-6) : 'anon'}</p>`;
+            let popupContent = `<div class="font-sans"><h3 class="font-bold text-lg">${location.type === 'restroom' ? 'Baño 🚽' : 'Agua �'}</h3>${location.description ? `<p class="mt-1">${location.description}</p>` : ''}<p class="text-xs text-gray-400 mt-2">ID: ...${location?.userId ? location.userId.slice(-6) : 'anon'}</p>`;
             if (userId === location.userId) popupContent += `<button id="delete-${locationId}" class="delete-button"><span class="material-symbols-outlined" style="font-size:1rem">delete</span>Borrar</button>`;
             popupContent += `</div>`;
             marker.bindPopup(popupContent);
@@ -285,3 +289,4 @@
     </script>
 </body>
 </html>
+�
