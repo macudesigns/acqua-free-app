@@ -177,7 +177,8 @@
 
         function initializeMap() {
             map = L.map('map', { zoomControl: false }).setView([40.416, -3.703], 6);
-            L.control.zoom({ position: 'top-right' }).addTo(map);
+            // Corrección: Cambiar 'top-right' por 'topright'
+            L.control.zoom({ position: 'topright' }).addTo(map);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
             markersLayer.addTo(map);
             
@@ -200,9 +201,11 @@
         }
 
         function addMarkerToMap(location, locationId) {
-            const icon = L.divIcon({ html: location.type === 'restroom' ? '🚽' : '�', className: `custom-div-icon ${location.type}`, iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -20] });
+            // Corrección: Asegurar que el emoji '💧' sea correcto
+            const icon = L.divIcon({ html: location.type === 'restroom' ? '🚽' : '💧', className: `custom-div-icon ${location.type}`, iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -20] });
             const marker = L.marker([location.lat, location.lng], { icon }).addTo(markersLayer);
-            let popupContent = `<div class="font-sans"><h3 class="font-bold text-lg">${location.type === 'restroom' ? 'Baño 🚽' : 'Agua 💧'}</h3>${location.description ? `<p class="mt-1">${location.description}</p>` : ''}<p class="text-xs text-gray-400 mt-2">ID: ...${location.userId.slice(-6)}</p>`;
+            // Corrección: Añadir protección para userId
+            let popupContent = `<div class="font-sans"><h3 class="font-bold text-lg">${location.type === 'restroom' ? 'Baño 🚽' : 'Agua 💧'}</h3>${location.description ? `<p class="mt-1">${location.description}</p>` : ''}<p class="text-xs text-gray-400 mt-2">ID: ...${location?.userId ? location.userId.slice(-6) : 'anon'}</p>`;
             if (userId === location.userId) popupContent += `<button id="delete-${locationId}" class="delete-button"><span class="material-symbols-outlined" style="font-size:1rem">delete</span>Borrar</button>`;
             popupContent += `</div>`;
             marker.bindPopup(popupContent);
@@ -282,4 +285,3 @@
     </script>
 </body>
 </html>
-�
