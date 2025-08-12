@@ -68,6 +68,11 @@
             display: inline-flex; align-items: center; gap: 4px;
         }
         .delete-button:hover { background-color: #dc2626; }
+        
+        /* Corrección: Empuja los controles de Mapbox hacia abajo */
+        .mapboxgl-ctrl-top-right {
+            margin-top: 70px;
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -181,12 +186,12 @@
                 trackUserLocation: true,
                 showUserHeading: true
             });
-            map.addControl(geolocate);
-            map.addControl(new mapboxgl.NavigationControl());
+            map.addControl(geolocate, 'top-right');
+            map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
             map.on('load', () => {
-                geolocate.trigger(); // Intenta localizar al usuario al cargar
-                listenForLocations(); // Carga los puntos una vez que el mapa esté listo
+                geolocate.trigger(); 
+                listenForLocations(); 
             });
             
             dom.centerMapBtn.onclick = () => geolocate.trigger();
@@ -195,7 +200,6 @@
         function listenForLocations() {
             const q = query(collection(db, DB_COLLECTION_NAME));
             onSnapshot(q, (snapshot) => {
-                // Limpia marcadores antiguos (Mapbox no tiene un layerGroup simple como Leaflet)
                 document.querySelectorAll('.custom-marker').forEach(marker => marker.remove());
                 
                 snapshot.forEach((doc) => addMarkerToMap(doc.data(), doc.id));
@@ -208,7 +212,7 @@
             el.className = `custom-marker ${location.type}-marker`;
             el.innerHTML = location.type === 'restroom' ? '🚽' : '💧';
 
-            let popupContent = `<div class="font-sans"><h3 class="font-bold text-lg">${location.type === 'restroom' ? 'Baño 🚽' : 'Agua 💧'}</h3>${location.description ? `<p class="mt-1">${location.description}</p>` : ''}<p class="text-xs text-gray-400 mt-2">ID: ...${location?.userId ? location.userId.slice(-6) : 'anon'}</p>`;
+            let popupContent = `<div class="font-sans"><h3 class="font-bold text-lg">${location.type === 'restroom' ? 'Baño 🚽' : 'Agua �'}</h3>${location.description ? `<p class="mt-1">${location.description}</p>` : ''}<p class="text-xs text-gray-400 mt-2">ID: ...${location?.userId ? location.userId.slice(-6) : 'anon'}</p>`;
             if (userId === location.userId) {
                 popupContent += `<button data-location-id="${locationId}" class="delete-button"><span class="material-symbols-outlined" style="font-size:1rem">delete</span>Borrar</button>`;
             }
@@ -222,7 +226,6 @@
                 .addTo(map);
         }
         
-        // Event delegation for delete buttons
         document.addEventListener('click', function (e) {
             if (e.target && e.target.classList.contains('delete-button')) {
                 const locationId = e.target.getAttribute('data-location-id');
@@ -252,11 +255,6 @@
                 dom.addLocationModal.classList.remove('hidden'); 
             });
             dom.cancelDeleteBtn.onclick = () => dom.confirmDeleteModal.classList.add('hidden');
-            dom.confirmDeleteBtn.onclick = async () => { /* ... (código sin cambios) */ };
-            dom.closeAdBtn.onclick = () => dom.adPanel.style.display = 'none';
-            dom.closeInfoBtn.onclick = () => { /* ... (código sin cambios) */ };
-            dom.acceptCookiesBtn.onclick = () => { /* ... (código sin cambios) */ };
-            dom.declineCookiesBtn.onclick = () => { /* ... (código sin cambios) */ };
         }
 
         function hideModal() {
@@ -269,11 +267,7 @@
             showInfoMessage("Haz clic en 'Añadir un Punto' para empezar.");
         }
         
-        function showInfoMessage(message, showClose = false, timeout = 0) { /* ... (código sin cambios) */ }
-        
-        // --- START APP ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Re-implementación de funciones sin cambios para brevedad
             showError = function(error) { console.error("Error:", error); if (error.code === 'auth/configuration-not-found') { dom.loaderContent.innerHTML = `<div class="text-center p-6 max-w-lg mx-auto bg-white border-4 border-red-500 rounded-lg shadow-2xl"><p class="text-red-600 font-bold text-2xl">¡Atención! Error de Configuración</p><p class="mt-2 text-gray-800 text-lg">El inicio de sesión anónimo no está activado en tu proyecto de Firebase.</p><p class="mt-6 text-md text-left bg-gray-100 p-4 rounded-lg"><strong>Solución Rápida (1 minuto):</strong><br>1. Ve a tu proyecto en la <strong>Consola de Firebase</strong>.<br>2. En el menú, ve a <strong>Authentication</strong>.<br>3. Haz clic en la pestaña <strong>Sign-in method</strong>.<br>4. Busca <strong>"Anónimo"</strong> en la lista y actívalo.</p><button onclick="location.reload()" class="mt-8 bg-blue-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-blue-700">Ya lo activé, reintentar</button></div>`; } else { dom.loaderContent.innerHTML = `<p class="text-red-500 p-4 text-center">Ocurrió un error inesperado.</p>`; } };
             handleCookieConsent = function() { const c = localStorage.getItem('cookie_consent'); if (c === 'accepted') dom.adPanel.classList.remove('hidden'); else if (c !== 'declined') dom.cookieConsentBanner.classList.remove('hidden'); };
             authenticateUser = async function() { const cred = await signInAnonymously(auth); userId = cred.user.uid; console.log("User:", userId); };
@@ -282,6 +276,7 @@
             dom.declineCookiesBtn.onclick = () => { localStorage.setItem('cookie_consent', 'declined'); dom.cookieConsentBanner.classList.add('hidden'); dom.adPanel.classList.add('hidden'); };
             showInfoMessage = function(message, showClose = false, timeout = 0) { if (infoTimeout) clearTimeout(infoTimeout); dom.infoText.textContent = message; dom.infoPanel.classList.remove('opacity-0', 'pointer-events-none'); dom.closeInfoBtn.classList.toggle('hidden', !showClose); if (timeout > 0) infoTimeout = setTimeout(() => dom.infoPanel.classList.add('opacity-0', 'pointer-events-none'), timeout); };
             dom.closeInfoBtn.onclick = () => { dom.infoPanel.classList.add('opacity-0', 'pointer-events-none'); if (infoTimeout) clearTimeout(infoTimeout); };
+            dom.closeAdBtn.onclick = () => dom.adPanel.style.display = 'none';
 
             try {
                 const app = initializeApp(firebaseConfig);
@@ -301,3 +296,4 @@
     </script>
 </body>
 </html>
+�
